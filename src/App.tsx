@@ -278,7 +278,7 @@ LKR ${recurringCost.toLocaleString()}
   }
 
   // YOUR WHATSAPP NUMBER
-  const whatsappNumber = "94776826937";
+  const whatsappNumber = "+94776826937";
 
   const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(invoiceMessage)}`;
 
