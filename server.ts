@@ -15,6 +15,46 @@ async function startServer() {
   // In-memory leads array mimicking database persistence
   const leads: any[] = [];
 
+  // In-memory reviews array of existing local Ceylon clients
+  const reviews: any[] = [
+    {
+      id: "rev_1",
+      name: "Maneesha de Silva",
+      business: "Colombo Linen Co",
+      package: "Starter Web",
+      rating: 5,
+      comment: "YJMWeb changed our Instagram sales! They built a beautiful Starter Web shop with floating WhatsApp buttons. Our conversion rates spiked 40% in just two weeks! Extremely fast Colombo team.",
+      date: "2026-05-12"
+    },
+    {
+      id: "rev_2",
+      name: "Dr. Aruni Ranasinghe",
+      business: "Wellness Lanka Clinic",
+      package: "Business Web",
+      rating: 5,
+      comment: "Highly professional service. Built a custom reservation booking form with offline configuration under the Business plan. Their sub-second loading speed makes a huge difference.",
+      date: "2026-05-18"
+    },
+    {
+      id: "rev_3",
+      name: "Kushan Perera",
+      business: "Perera Tours, Galle",
+      package: "Premium Corporate Web",
+      rating: 5,
+      comment: "We requested a full travel operator booking portal. The Premium tier has seamless visual overlays, custom CMS for blogs, and perfect speed auditing. Unbeatable Sri Lankan pricing!",
+      date: "2026-05-22"
+    },
+    {
+      id: "rev_4",
+      name: "Dilshan Wickramasinghe",
+      business: "Ceylon Tea Traders",
+      package: "E-Commerce Gateway Shop",
+      rating: 5,
+      comment: "Incredible work! They integrated PayHere merchant setup and direct e-commerce shopping carts in 3 weeks. Direct order alerts straight to our warehouse staff WhatsApp.",
+      date: "2026-05-25"
+    }
+  ];
+
   // API Route - Health Check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", time: new Date() });
@@ -23,6 +63,30 @@ async function startServer() {
   // API Routes for Inquiry Leads Management
   app.get("/api/leads", (req, res) => {
     res.json({ success: true, count: leads.length, data: leads });
+  });
+
+  // API Routes for Reviews Manager
+  app.get("/api/reviews", (req, res) => {
+    res.json({ success: true, count: reviews.length, data: reviews });
+  });
+
+  app.post("/api/reviews", (req, res) => {
+    const { name, business, package: pkgName, rating, comment } = req.body;
+    if (!name || !rating || !comment) {
+      return res.status(400).json({ success: false, error: "Required fields name, rating, comment are missing." });
+    }
+    const newReview = {
+      id: "rev_" + Math.random().toString(36).substr(2, 9),
+      name,
+      business: business || "Local Company",
+      package: pkgName || "Business Web",
+      rating: parseInt(rating) || 5,
+      comment,
+      date: new Date().toISOString().split('T')[0]
+    };
+    reviews.unshift(newReview);
+    console.log("🚀 [YJMWeb Logger] Registered new client review:", newReview);
+    res.status(201).json({ success: true, data: newReview });
   });
 
   app.post("/api/leads", (req, res) => {

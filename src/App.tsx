@@ -10,9 +10,15 @@ import Portfolio from "./components/Portfolio";
 import About from "./components/About";
 import { ChatMessage } from "./types";
 
+// Dynamic modular sub-pages
+import PackagesPage from "./components/PackagesPage";
+import CheckoutPage from "./components/CheckoutPage";
+import AboutPage from "./components/AboutPage";
+import ReviewsPage from "./components/ReviewsPage";
+
 export default function App() {
-  // Navigation tabs or Scroll-to sections
-  const [activeTab, setActiveTab] = useState<"dashboard" | "services" | "portfolio" | "about">("dashboard");
+  // Navigation tabs or Scroll-to sections - Expanded to full Multi-page SPA
+  const [activeTab, setActiveTab] = useState<"dashboard" | "packages" | "checkout" | "about" | "reviews">("dashboard");
 
   // State for Calculator
   const [businessType, setBusinessType] = useState<string>("Retail & Shopping");
@@ -343,10 +349,13 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
   };
 
   const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+    setActiveTab("dashboard");
+    setTimeout(() => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 150);
   };
 
   return (
@@ -355,7 +364,7 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
       {/* 1. Header (High Density style) */}
       <header className="sticky top-0 z-50 h-16 border-b border-border-custom bg-bg/85 backdrop-blur-md flex items-center justify-between px-4 sm:px-8">
         <div className="flex items-center gap-2">
-          <span className="logo font-sans font-black text-xl tracking-tight text-accent flex items-center gap-1.5 cursor-pointer" onClick={() => scrollToSection("hero")}>
+          <span className="logo font-sans font-black text-xl tracking-tight text-accent flex items-center gap-1.5 cursor-pointer" onClick={() => setActiveTab("dashboard")}>
             YJMWEB<span className="text-text-primary">.agency</span>
           </span>
           <span className="hidden sm:inline-flex bg-accent-glow text-accent border border-accent/20 text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-sm">
@@ -364,20 +373,23 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
         </div>
 
         {/* Links */}
-        <nav className="hidden md:flex items-center gap-6 font-semibold text-xs tracking-wider uppercase text-text-secondary">
+        <nav className="hidden lg:flex items-center gap-5 font-bold text-[10px] tracking-wider uppercase text-text-secondary">
+          <button onClick={() => setActiveTab("dashboard")} className={`transition-all cursor-pointer ${activeTab === "dashboard" ? "text-accent border-b border-accent pb-0.5 font-extrabold" : "hover:text-accent"}`}>Home</button>
           <button onClick={() => scrollToSection("services")} className="hover:text-accent transition-colors cursor-pointer">Services</button>
           <button onClick={() => scrollToSection("portfolio")} className="hover:text-accent transition-colors cursor-pointer">Live Templates</button>
-          <button onClick={() => scrollToSection("calculator")} className="hover:text-accent transition-colors cursor-pointer">Price Calculator</button>
-          <button onClick={() => scrollToSection("consultant")} className="hover:text-accent transition-colors cursor-pointer">AI Consultant</button>
-          <button onClick={() => scrollToSection("about")} className="hover:text-accent transition-colors cursor-pointer">About Agency</button>
+          <button onClick={() => scrollToSection("calculator")} className="hover:text-accent transition-colors cursor-pointer">Price Sandbox</button>
+          <button onClick={() => setActiveTab("packages")} className={`transition-all cursor-pointer ${activeTab === "packages" ? "text-accent border-b border-accent pb-0.5 font-extrabold" : "hover:text-accent"}`}>Detailed Tiers</button>
+          <button onClick={() => setActiveTab("checkout")} className={`transition-all cursor-pointer ${activeTab === "checkout" ? "text-accent border-b border-accent pb-0.5 font-extrabold" : "hover:text-accent"}`}>Checkout</button>
+          <button onClick={() => setActiveTab("reviews")} className={`transition-all cursor-pointer ${activeTab === "reviews" ? "text-accent border-b border-accent pb-0.5 font-extrabold" : "hover:text-accent"}`}>Reviews</button>
+          <button onClick={() => setActiveTab("about")} className={`transition-all cursor-pointer ${activeTab === "about" ? "text-accent border-b border-accent pb-0.5 font-extrabold" : "hover:text-accent"}`}>About Agency</button>
         </nav>
 
         {/* Call To Action button */}
         <button 
-          onClick={() => scrollToSection("calculator")}
+          onClick={() => setActiveTab("checkout")}
           className="bg-accent hover:bg-accent/80 text-bg py-1.5 px-3.5 rounded-md font-bold text-xs tracking-tight transition-all flex items-center gap-1.5 cursor-pointer shadow-sm shadow-accent/15"
         >
-          <span>Calculate Proposal</span>
+          <span>Immediate Invoice</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </header>
@@ -536,7 +548,9 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
         {/* MAIN BODY AREA (Column 2 - 9 columns wide on LG screens) - Contains Hero, pricing cards, builder and components */}
         <main className="col-span-1 lg:col-span-9 overflow-y-auto">
           
-          {/* Section Anchors */}
+          {activeTab === "dashboard" ? (
+            <>
+              {/* Section Anchors */}
           <div id="hero">
             <Hero 
               onNavigateToCalculator={() => scrollToSection("calculator")}
@@ -1158,6 +1172,51 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
           <div id="about">
             <About />
           </div>
+            </>
+          ) : activeTab === "packages" ? (
+            <PackagesPage 
+              onSelectPackage={(pkgKey) => {
+                setSelectedBaseTier(pkgKey);
+                setActiveTab("checkout");
+              }}
+              basePrices={basePrices}
+              featureAddons={featureAddons}
+            />
+          ) : activeTab === "checkout" ? (
+            <CheckoutPage 
+              selectedBaseTier={selectedBaseTier}
+              setSelectedBaseTier={setSelectedBaseTier}
+              selectedFeatures={selectedFeatures}
+              setSelectedFeatures={setSelectedFeatures}
+              selectedMaintenance={selectedMaintenance}
+              setSelectedMaintenance={setSelectedMaintenance}
+              clientName={clientName}
+              setClientName={setClientName}
+              clientPhone={clientPhone}
+              setClientPhone={setClientPhone}
+              businessType={businessType}
+              setBusinessType={setBusinessType}
+              customDetails={customDetails}
+              setCustomDetails={setCustomDetails}
+              basePrices={basePrices}
+              featureAddons={featureAddons}
+              maintenancePlanPrices={maintenancePlanPrices}
+              initialSetupTotal={initialSetupTotal}
+              recurringCost={recurringCost}
+              handleWhatsAppExport={handleWhatsAppExport}
+              handleEmailExport={handleEmailExport}
+              submitSuccessMsg={submitSuccessMsg}
+              loggedLeads={loggedLeads}
+              fetchLeads={fetchLeads}
+            />
+          ) : activeTab === "about" ? (
+            <AboutPage />
+          ) : activeTab === "reviews" ? (
+            <ReviewsPage 
+              selectedBaseTier={selectedBaseTier}
+              basePrices={basePrices}
+            />
+          ) : null}
 
         </main>
       </div>
