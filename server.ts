@@ -12,9 +12,61 @@ async function startServer() {
 
   app.use(express.json());
 
+  // In-memory leads array mimicking database persistence
+  const leads: any[] = [];
+
   // API Route - Health Check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", time: new Date() });
+  });
+
+  // API Routes for Inquiry Leads Management
+  app.get("/api/leads", (req, res) => {
+    res.json({ success: true, count: leads.length, data: leads });
+  });
+
+  app.post("/api/leads", (req, res) => {
+    const { 
+      clientName, 
+      clientPhone, 
+      businessType, 
+      customDetails, 
+      selectedBaseTier, 
+      initialSetupTotal, 
+      selectedMaintenance, 
+      recurringCost,
+      selectedFeatures,
+      exportedChannel // "whatsapp" | "email"
+    } = req.body;
+
+    const newLead = {
+      id: "l_" + Math.random().toString(36).substr(2, 9),
+      clientName: clientName || "Valued Client",
+      clientPhone: clientPhone || "Not specified",
+      businessType: businessType || "General SME",
+      customDetails: customDetails || "No custom specifications provided",
+      selectedBaseTier: selectedBaseTier || "business",
+      initialSetupTotal: initialSetupTotal || 0,
+      selectedMaintenance: selectedMaintenance || "basic",
+      recurringCost: recurringCost || 0,
+      selectedFeatures: selectedFeatures || [],
+      exportedChannel: exportedChannel || "email",
+      timestamp: new Date().toISOString()
+    };
+
+    leads.unshift(newLead); // prefix latest submissions
+    console.log("🚀 [YJMWeb Logger] Registered new interactive client lead:", newLead);
+    res.status(201).json({ success: true, data: newLead });
+  });
+
+  app.delete("/api/leads/:id", (req, res) => {
+    const { id } = req.params;
+    const index = leads.findIndex(lead => lead.id === id);
+    if (index !== -1) {
+      leads.splice(index, 1);
+      return res.json({ success: true, message: "Lead registration removed successfully." });
+    }
+    res.status(404).json({ success: false, error: "Lead not found." });
   });
 
   // API Route - Web agency AI consultant (Gemini API)

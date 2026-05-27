@@ -26,6 +26,24 @@ export default function App() {
   // Client info for WhatsApp/submission
   const [clientName, setClientName] = useState<string>("");
   const [clientPhone, setClientPhone] = useState<string>("");
+  const [loggedLeads, setLoggedLeads] = useState<any[]>([]);
+  const [submitSuccessMsg, setSubmitSuccessMsg] = useState<string>("");
+
+  const fetchLeads = async () => {
+    try {
+      const res = await fetch("/api/leads");
+      const data = await res.json();
+      if (data.success) {
+        setLoggedLeads(data.data);
+      }
+    } catch (err) {
+      console.error("Could not fetch logged inquiries:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeads();
+  }, []);
 
   // AI Assistant Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -148,8 +166,7 @@ export default function App() {
   };
 
   // Fast proposal formulation to WhatsApp
-  const handleWhatsAppExport = () => {
-    // Generate text message formatted perfectly
+  const handleWhatsAppExport = async () => {
     const featureLabels = selectedFeatures.map(fid => {
       return `• ${featureAddons.find(f => f.id === fid)?.label || fid}`;
     }).join("\n");
@@ -171,10 +188,91 @@ ${featureLabels || '• None'}
 
 Please trigger a free consultation call. Thank you!`;
 
+    // Persistent server logging
+    try {
+      await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName,
+          clientPhone,
+          businessType,
+          customDetails,
+          selectedBaseTier,
+          initialSetupTotal,
+          selectedMaintenance,
+          recurringCost,
+          selectedFeatures: selectedFeatures.map(fid => featureAddons.find(f => f.id === fid)?.label || fid),
+          exportedChannel: "whatsapp"
+        })
+      });
+      fetchLeads();
+      setSubmitSuccessMsg("✅ Your inquiry details have been saved to the server and WhatsApp has been launched!");
+      setTimeout(() => setSubmitSuccessMsg(""), 6000);
+    } catch (err) {
+      console.error("Backend login skipped:", err);
+    }
+
     const encodedText = encodeURIComponent(messageTemplate);
-    // WhatsApp URL
-    const whatsappUrl = `https://wa.me/94701234567?text=${encodedText}`; // Sample corporate WhatsApp
+    const whatsappUrl = `https://wa.me/94776826937?text=${encodedText}`;
     window.open(whatsappUrl, "_blank");
+  };
+
+  // Fast proposal formulation to corporate Email
+  const handleEmailExport = async () => {
+    const featureLabels = selectedFeatures.map(fid => {
+      return `• ${featureAddons.find(f => f.id === fid)?.label || fid}`;
+    }).join("\n");
+
+    const subject = `YJMWeb Core Web Proposal Request - ${clientName || 'Valued Client'}`;
+    const emailBody = `Hello YJMWeb Team! 🚀
+
+I have compiled my website configuration metrics using your pricing estimator. Here are the core specifications:
+
+--- CONTACT DETAILS ---
+👤 Client/Company Name: ${clientName || 'Valued Client'}
+📞 WhatsApp/Contact No: ${clientPhone || 'Not specified'}
+🏢 Business Niche: ${businessType}
+📝 Special Requests/Wishes: ${customDetails || 'Standard Config'}
+
+--- CONFIGURATION PRICING ---
+🏷️ Chosen Base Tier: ${basePrices[selectedBaseTier].label}
+💰 Estimated Budget Cost: LKR ${initialSetupTotal.toLocaleString()}
+🔁 Care & Maintenance Plan: ${maintenancePlanPrices[selectedMaintenance].label} (LKR ${recurringCost.toLocaleString()}/month)
+📅 Expected Timeline: ${basePrices[selectedBaseTier].delivery}
+
+Selected Features & Addons:
+${featureLabels || '• None Selected'}
+
+Please review my inquiry and reach out with design ideas. Thank you!`;
+
+    // Persistent server logging
+    try {
+      await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName,
+          clientPhone,
+          businessType,
+          customDetails,
+          selectedBaseTier,
+          initialSetupTotal,
+          selectedMaintenance,
+          recurringCost,
+          selectedFeatures: selectedFeatures.map(fid => featureAddons.find(f => f.id === fid)?.label || fid),
+          exportedChannel: "email"
+        })
+      });
+      fetchLeads();
+      setSubmitSuccessMsg("✅ Inquiry saved! Opening your native Mail Client addressed to yunilajanu72@gmail.com.");
+      setTimeout(() => setSubmitSuccessMsg(""), 6000);
+    } catch (err) {
+      console.error("Backend login skipped:", err);
+    }
+
+    const mailtoUrl = `mailto:yunilajanu72@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+    window.open(mailtoUrl, "_blank");
   };
 
   const scrollToSection = (id: string) => {
@@ -627,8 +725,15 @@ Please trigger a free consultation call. Thank you!`;
                         />
                       </div>
 
+                      {/* Success Feedback Banner */}
+                      {submitSuccessMsg && (
+                        <div className="bg-emerald-950/60 border border-emerald-500/40 p-3 rounded-lg text-xs text-emerald-300 font-sans shadow-md animate-fade-in">
+                          {submitSuccessMsg}
+                        </div>
+                      )}
+
                       {/* Launch Consultation triggers */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                         
                         <button
                           type="button"
@@ -639,10 +744,25 @@ Please trigger a free consultation call. Thank you!`;
                             }
                             handleWhatsAppExport();
                           }}
-                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs p-3 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs p-3 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
                         >
                           <Smartphone className="w-4 h-4 fill-slate-950 stroke-none" />
-                          <span>WhatsApp YJMWeb</span>
+                          <span>WhatsApp Proposal</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!clientName.trim() || !clientPhone.trim()) {
+                              alert("Please fill your Name and Contact Phone details so we can draft your direct project proposal details.");
+                              return;
+                            }
+                            handleEmailExport();
+                          }}
+                          className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs p-3 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                        >
+                          <Mail className="w-4 h-4 text-white" />
+                          <span>Email Proposal</span>
                         </button>
 
                         <button
@@ -658,6 +778,64 @@ Please trigger a free consultation call. Thank you!`;
                           <span>Push Settings to AI</span>
                         </button>
                       </div>
+
+                      {/* Interactive Registered Leads Inbox Tracker */}
+                      {loggedLeads.length > 0 && (
+                        <div className="border-t border-border-custom/60 pt-4 mt-4 space-y-3">
+                          <div className="flex justify-between items-center bg-card/60 p-2 px-3 border border-border-custom rounded-md">
+                            <span className="text-[10px] font-mono text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                              Saved Inquiries Tracker ({loggedLeads.length})
+                            </span>
+                            <span className="text-[9px] bg-accent-glow text-accent font-bold px-1.5 py-0.2 rounded">
+                              yunilajanu72@gmail.com
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                            {loggedLeads.map((lead: any) => (
+                              <div key={lead.id} className="bg-bg border border-border-custom p-3 rounded-lg text-[11px] space-y-1.5 relative group hover:border-accent/30 transition-all">
+                                
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <span className="font-bold text-text-primary block">{lead.clientName}</span>
+                                    <span className="text-[9px] text-text-secondary font-mono">Phone: {lead.clientPhone} | Niche: {lead.businessType}</span>
+                                  </div>
+                                  <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded capitalize ${
+                                    lead.exportedChannel === 'whatsapp' ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/20' : 'bg-sky-950 text-sky-400 border border-sky-500/20'
+                                  }`}>
+                                    Via {lead.exportedChannel}
+                                  </span>
+                                </div>
+
+                                <div className="text-[10px] bg-card p-2 rounded text-text-secondary italic">
+                                  "{lead.customDetails}"
+                                </div>
+
+                                <div className="flex justify-between items-center text-[10px] font-mono pt-1 text-text-secondary">
+                                  <span>Setup: <strong className="text-accent text-[11px]">LKR {lead.initialSetupTotal?.toLocaleString()}</strong></span>
+                                  <button 
+                                    onClick={async () => {
+                                      try {
+                                        const res = await fetch(`/api/leads/${lead.id}`, { method: 'DELETE' });
+                                        if (res.ok) {
+                                          fetchLeads();
+                                        }
+                                      } catch (e) {
+                                        console.error(e);
+                                      }
+                                    }}
+                                    className="text-red-400 hover:text-red-300 font-bold transition-all"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                     </div>
 
