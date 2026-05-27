@@ -165,58 +165,125 @@ export default function App() {
     }
   };
 
-  // Fast proposal formulation to WhatsApp
-  const handleWhatsAppExport = async () => {
-    const featureLabels = selectedFeatures.map(fid => {
-      return `• ${featureAddons.find(f => f.id === fid)?.label || fid}`;
-    }).join("\n");
+// WhatsApp Invoice Export Function
+const handleWhatsAppExport = async () => {
+  if (!clientName.trim() || !clientPhone.trim()) {
+    alert("Please fill your Name and Contact Phone details so we can draft your direct project proposal details.");
+    return;
+  }
 
-    const messageTemplate = `Hello YJMWeb! 🚀 I've finalized my website estimate on your interactive site portal:
----
-👤 Client Name: ${clientName || 'Valued Client'}
-📞 Contact Phone: ${clientPhone || 'Not specified'}
-🏢 Niche/Industry: ${businessType}
-📝 Business Notes: ${customDetails || 'Standard Setup'}
----
-🏷️ Estimate Package Selected: ${basePrices[selectedBaseTier].label}
-💰 Setup Website Cost: LKR ${initialSetupTotal.toLocaleString()}
-🔁 Monthly Care Subscription: ${maintenancePlanPrices[selectedMaintenance].label} (LKR ${recurringCost.toLocaleString()}/month)
-📅 Target Delivery: ${basePrices[selectedBaseTier].delivery}
+  const selectedPackage = basePrices[selectedBaseTier];
 
-Selected Core Upgrades:
-${featureLabels || '• None'}
+  const featureLabels = selectedFeatures.map(fid => {
+    const feature = featureAddons.find(f => f.id === fid);
+    return feature ? `• ${feature.label} - LKR ${feature.price.toLocaleString()}` : "";
+  }).join("\n");
 
-Please trigger a free consultation call. Thank you!`;
+  const invoiceMessage = `
+🌐 *YJMWeb Website Inquiry*
 
-    // Persistent server logging
-    try {
-      await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientName,
-          clientPhone,
-          businessType,
-          customDetails,
-          selectedBaseTier,
-          initialSetupTotal,
-          selectedMaintenance,
-          recurringCost,
-          selectedFeatures: selectedFeatures.map(fid => featureAddons.find(f => f.id === fid)?.label || fid),
-          exportedChannel: "whatsapp"
-        })
-      });
-      fetchLeads();
-      setSubmitSuccessMsg("✅ Your inquiry details have been saved to the server and WhatsApp has been launched!");
-      setTimeout(() => setSubmitSuccessMsg(""), 6000);
-    } catch (err) {
-      console.error("Backend login skipped:", err);
-    }
+━━━━━━━━━━━━━━━
+👤 Client Information
+━━━━━━━━━━━━━━━
 
-    const encodedText = encodeURIComponent(messageTemplate);
-    const whatsappUrl = `https://wa.me/94776826937?text=${encodedText}`;
-    window.open(whatsappUrl, "_blank");
-  };
+🧑 Name: ${clientName || "Not Provided"}
+📞 Phone: ${clientPhone || "Not Provided"}
+
+━━━━━━━━━━━━━━━
+🏢 Business Details
+━━━━━━━━━━━━━━━
+
+🏪 Business Type:
+${businessType}
+
+📝 Extra Notes:
+${customDetails || "No additional details"}
+
+━━━━━━━━━━━━━━━
+💻 Selected Website Package
+━━━━━━━━━━━━━━━
+
+📦 Package:
+${selectedPackage.label}
+
+💰 Base Price:
+LKR ${selectedPackage.price.toLocaleString()}
+
+📅 Delivery Time:
+${selectedPackage.delivery}
+
+━━━━━━━━━━━━━━━
+⚡ Selected Add-ons
+━━━━━━━━━━━━━━━
+
+${featureLabels || "No extra features selected"}
+
+━━━━━━━━━━━━━━━
+🔄 Maintenance Plan
+━━━━━━━━━━━━━━━
+
+${maintenancePlanPrices[selectedMaintenance].label}
+
+💵 Monthly Fee:
+LKR ${recurringCost.toLocaleString()}
+
+━━━━━━━━━━━━━━━
+🧾 Final Pricing
+━━━━━━━━━━━━━━━
+
+💰 Initial Website Cost:
+LKR ${initialSetupTotal.toLocaleString()}
+
+💳 Monthly Maintenance:
+LKR ${recurringCost.toLocaleString()}
+
+━━━━━━━━━━━━━━━
+🚀 Sent via YJMWeb Estimator
+━━━━━━━━━━━━━━━
+`;
+
+  // Optional backend save
+  try {
+    await fetch("/api/leads", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        clientName,
+        clientPhone,
+        businessType,
+        customDetails,
+        package: selectedPackage.label,
+        packagePrice: selectedPackage.price,
+        selectedFeatures,
+        maintenancePlan: selectedMaintenance,
+        recurringCost,
+        totalCost: initialSetupTotal
+      })
+    });
+
+    fetchLeads();
+
+    setSubmitSuccessMsg(
+      "✅ Inquiry submitted successfully! Redirecting to WhatsApp..."
+    );
+
+    setTimeout(() => {
+      setSubmitSuccessMsg("");
+    }, 5000);
+
+  } catch (err) {
+    console.error("Lead save failed:", err);
+  }
+
+  // YOUR WHATSAPP NUMBER
+  const whatsappNumber = "94776826937";
+
+  const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(invoiceMessage)}`;
+
+  window.open(whatsappURL, "_blank");
+};
 
   // Fast proposal formulation to corporate Email
   const handleEmailExport = async () => {
@@ -737,17 +804,11 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
                         
                         <button
                           type="button"
-                          onClick={() => {
-                            if (!clientName.trim() || !clientPhone.trim()) {
-                              alert("Please fill your Name and Contact Phone details so we can draft your direct project proposal details.");
-                              return;
-                            }
-                            handleWhatsAppExport();
-                          }}
+                          onClick={handleWhatsAppExport}
                           className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs p-3 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
                         >
                           <Smartphone className="w-4 h-4 fill-slate-950 stroke-none" />
-                          <span>WhatsApp Proposal</span>
+                          <span>Send Inquiry</span>
                         </button>
 
                         <button
