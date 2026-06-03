@@ -3,6 +3,7 @@ import {
   CreditCard, Smartphone, ShieldCheck, Mail, Printer, AlertTriangle, 
   Check, ArrowRight, User, Phone, Briefcase, FileText, Send, Sparkles, Building2 
 } from "lucide-react";
+import { Package, Addon, MaintenancePlan } from "../services/googleSheets";
 
 interface CheckoutPageProps {
   selectedBaseTier: "starter" | "business" | "premium" | "ecommerce";
@@ -19,13 +20,9 @@ interface CheckoutPageProps {
   setBusinessType: (b: string) => void;
   customDetails: string;
   setCustomDetails: (d: string) => void;
-  basePrices: {
-    [key: string]: { label: string; price: number; delivery: string };
-  };
-  featureAddons: Array<{ id: string; label: string; price: number; category: string }>;
-  maintenancePlanPrices: {
-    [key: string]: { label: string; price: number };
-  };
+  basePrices: Package[];
+  featureAddons: Addon[];
+  maintenancePlanPrices: MaintenancePlan[];
   initialSetupTotal: number;
   recurringCost: number;
   handleWhatsAppExport: () => void;
@@ -61,6 +58,7 @@ export default function CheckoutPage({
   loggedLeads,
   fetchLeads
 }: CheckoutPageProps) {
+  const selectedPackage = basePrices.find(p => String(p.id) === String(selectedBaseTier) || p.name === selectedBaseTier || String(p.id).toLowerCase() === String(selectedBaseTier).toLowerCase());
   const [paymentMethod, setPaymentMethod] = useState<"payhere" | "bank" | "ezcash">("bank");
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [simulationResult, setSimulationResult] = useState<string>("");
@@ -350,11 +348,11 @@ export default function CheckoutPage({
               
               <div className="flex justify-between">
                 <span>Base Tier Mapped:</span>
-                <span className="font-bold text-text-primary font-sans">{basePrices[selectedBaseTier].label}</span>
+                <span className="font-bold text-text-primary font-sans">{selectedPackage?.name || "Selected Package"}</span>
               </div>
               <div className="flex justify-between text-[11px] text-text-secondary pl-3">
                 <span>Timeline SLA:</span>
-                <span>{basePrices[selectedBaseTier].delivery}</span>
+                <span>{selectedPackage?.delivery || "3-5 Days"}</span>
               </div>
 
               {selectedFeatures.length > 0 ? (
@@ -365,7 +363,7 @@ export default function CheckoutPage({
                     return (
                       <div key={fid} className="flex justify-between text-[11px]">
                         <span>• {math?.label} ({math?.category})</span>
-                        <span className="font-mono text-accent">LKR {math?.price.toLocaleString()}</span>
+                        <span className="font-mono text-accent">LKR {Number(math?.price || 0).toLocaleString()}</span>
                       </div>
                     );
                   })}

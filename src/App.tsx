@@ -16,7 +16,7 @@ import CheckoutPage from "./components/CheckoutPage";
 import AboutPage from "./components/AboutPage";
 import ReviewsPage from "./components/ReviewsPage";
 
-import { fetchCMSData, CMSData, DEFAULT_CMS_DATA } from "./services/googleSheets";
+import { fetchCMSData, CMSData, DEFAULT_CMS_DATA, Package, Addon, MaintenancePlan } from "./services/googleSheets";
 
 export default function App() {
   // Navigation tabs or Scroll-to sections - Expanded to full Multi-page SPA
@@ -122,14 +122,33 @@ export default function App() {
   const featureAddons = cmsData.addons;
   const maintenancePlanPrices = cmsData.maintenance;
 
+  // Resolve active selected package dynamically
+  const selectedPackage = basePrices.find(p => 
+    String(p.id) === String(selectedBaseTier) || 
+    p.name === selectedBaseTier ||
+    String(p.id).toLowerCase() === String(selectedBaseTier).toLowerCase()
+  );
+
+  // Resolve active selected maintenance plan
+  const selectedPlan = maintenancePlanPrices.find(m => 
+    String(m.id).toLowerCase() === String(selectedMaintenance).toLowerCase() || 
+    m.label === selectedMaintenance
+  );
+
+  // Temporarily add debugging as requested in requirement 6
+  console.log("CMS DATA", cmsData);
+  console.log("PACKAGES", cmsData.packages);
+  console.log("SELECTED TIER", selectedBaseTier);
+  console.log("SELECTED PACKAGE", selectedPackage);
+
   // Calculating total pricing
-  const baseCost = basePrices[selectedBaseTier]?.price || 0;
-  const baseMonthlyCost = basePrices[selectedBaseTier]?.monthly_price || 0;
+  const baseCost = Number(selectedPackage?.setup_price || 0);
+  const baseMonthlyCost = Number(selectedPackage?.monthly_price || 0);
   const featuresCost = selectedFeatures.reduce((acc, featId) => {
     const match = featureAddons.find(f => f.id === featId);
-    return acc + (match ? match.price : 0);
+    return acc + (match ? Number(match.price || 0) : 0);
   }, 0);
-  const recurringCost = (maintenancePlanPrices[selectedMaintenance]?.price || 0) + baseMonthlyCost;
+  const recurringCost = Number(selectedPlan?.price || 0) + baseMonthlyCost;
   const initialSetupTotal = baseCost + featuresCost;
 
   // Toggle Features function
@@ -164,8 +183,8 @@ export default function App() {
           message: query,
           history: messages.slice(-10), // Send last 10 messages for context
           businessType: `${businessType} (${customDetails || 'No additional custom details'})`,
-          budget: `${basePrices[selectedBaseTier].label} (~LKR ${initialSetupTotal.toLocaleString()})`,
-          features: [...featureLabels, `Maintenance: ${maintenancePlanPrices[selectedMaintenance].label}`]
+          budget: `${selectedPackage?.name || selectedPackage?.label || selectedBaseTier} (~LKR ${initialSetupTotal.toLocaleString()})`,
+          features: [...featureLabels, `Maintenance: ${selectedPlan?.label || selectedMaintenance}`]
         })
       });
 
@@ -195,11 +214,20 @@ const handleWhatsAppExport = async () => {
     return;
   }
 
-  const selectedPackage = basePrices[selectedBaseTier];
+  const selectedPkgForWhatsApp = basePrices.find(p => 
+    String(p.id) === String(selectedBaseTier) || 
+    p.name === selectedBaseTier ||
+    String(p.id).toLowerCase() === String(selectedBaseTier).toLowerCase()
+  );
+
+  const selectedPlanForWhatsApp = maintenancePlanPrices.find(m => 
+    String(m.id).toLowerCase() === String(selectedMaintenance).toLowerCase() || 
+    m.label === selectedMaintenance
+  );
 
   const featureLabels = selectedFeatures.map(fid => {
     const feature = featureAddons.find(f => f.id === fid);
-    return feature ? `• ${feature.label} - LKR ${feature.price.toLocaleString()}` : "";
+    return feature ? `• ${feature.label} - LKR ${Number(feature.price || 0).toLocaleString()}` : "";
   }).join("\n");
 
   const invoiceMessage = `
@@ -227,13 +255,13 @@ ${customDetails || "No additional details"}
 ━━━━━━━━━━━━━━━
 
 📦 Package:
-${selectedPackage.label}
+${selectedPkgForWhatsApp?.name || selectedPkgForWhatsApp?.label || "Selected Package"}
 
 💰 Base Price:
-LKR ${selectedPackage.price.toLocaleString()}
+LKR ${Number(selectedPkgForWhatsApp?.setup_price || 0).toLocaleString()}
 
 📅 Delivery Time:
-${selectedPackage.delivery}
+${selectedPkgForWhatsApp?.delivery || "3-5 Days"}
 
 ━━━━━━━━━━━━━━━
 ⚡ Selected Add-ons
@@ -245,7 +273,7 @@ ${featureLabels || "No extra features selected"}
 🔄 Maintenance Plan
 ━━━━━━━━━━━━━━━
 
-${maintenancePlanPrices[selectedMaintenance].label}
+${selectedPlanForWhatsApp?.label || selectedMaintenance}
 
 💵 Monthly Fee:
 LKR ${recurringCost.toLocaleString()}
@@ -277,8 +305,8 @@ LKR ${recurringCost.toLocaleString()}
         clientPhone,
         businessType,
         customDetails,
-        package: selectedPackage.label,
-        packagePrice: selectedPackage.price,
+        package: selectedPkgForWhatsApp?.name || selectedPkgForWhatsApp?.label || "Selected Package",
+        packagePrice: Number(selectedPkgForWhatsApp?.setup_price || 0),
         selectedFeatures,
         maintenancePlan: selectedMaintenance,
         recurringCost,
@@ -326,10 +354,10 @@ I have compiled my website configuration metrics using your pricing estimator. H
 📝 Special Requests/Wishes: ${customDetails || 'Standard Config'}
 
 --- CONFIGURATION PRICING ---
-🏷️ Chosen Base Tier: ${basePrices[selectedBaseTier].label}
+🏷️ Chosen Base Tier: ${selectedPackage?.name || selectedPackage?.label || selectedBaseTier}
 💰 Estimated Budget Cost: LKR ${initialSetupTotal.toLocaleString()}
-🔁 Care & Maintenance Plan: ${maintenancePlanPrices[selectedMaintenance].label} (LKR ${recurringCost.toLocaleString()}/month)
-📅 Expected Timeline: ${basePrices[selectedBaseTier].delivery}
+🔁 Care & Maintenance Plan: ${selectedPlan?.label || selectedMaintenance} (LKR ${recurringCost.toLocaleString()}/month)
+📅 Expected Timeline: ${selectedPackage?.delivery || "3-5 Days"}
 
 Selected Features & Addons:
 ${featureLabels || '• None Selected'}
@@ -377,11 +405,25 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
     }, 150);
   };
 
-  if (cmsLoading && (!cmsData || !cmsData.packages)) {
+  if (cmsLoading && (!cmsData || !cmsData.packages || cmsData.packages.length === 0)) {
     return (
       <div className="min-h-screen bg-bg text-text-primary flex flex-col items-center justify-center font-sans space-y-4">
         <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin" />
         <p className="text-sm font-mono text-text-secondary animate-pulse">Connecting to Google Sheets CMS...</p>
+      </div>
+    );
+  }
+
+  if (cmsError && (!cmsData || !cmsData.packages || cmsData.packages.length === 0)) {
+    return (
+      <div className="min-h-screen bg-bg text-text-primary flex flex-col items-center justify-center font-sans space-y-4">
+        <div className="p-6 bg-red-950/40 border-2 border-red-500/30 text-rose-500 font-mono rounded-lg max-w-sm text-center space-y-4 flex flex-col items-center leading-relaxed">
+          <div className="text-2xl">⚠️</div>
+          <p className="text-xs">Unable to load CMS data. Please verify your Google Apps Script API URL config or network connection.</p>
+          <button onClick={() => loadCMS(true)} className="bg-red-500 hover:bg-red-400 text-bg px-4 py-1.5 rounded font-sans font-bold text-xs cursor-pointer transition-colors">
+            Retry Connection
+          </button>
+        </div>
       </div>
     );
   }
@@ -649,12 +691,12 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
                       1. Choose Base Website Tier
                     </label>
                     <div className="grid grid-cols-2 gap-3">
-                      {(Object.keys(basePrices) as Array<keyof typeof basePrices>).map((tierKey) => {
-                        const tier = basePrices[tierKey];
-                        const isSelected = selectedBaseTier === tierKey;
+                      {basePrices.map((tier) => {
+                        const tierKey = String(tier.id) as "starter" | "business" | "premium" | "ecommerce";
+                        const isSelected = String(selectedBaseTier).toLowerCase() === String(tier.id).toLowerCase();
                         return (
                           <button
-                            key={tierKey}
+                            key={tier.id}
                             id={`tier-card-${String(tierKey)}`}
                             onClick={() => setSelectedBaseTier(tierKey)}
                             className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between h-24 ${
@@ -664,11 +706,11 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
                             }`}
                           >
                             <div>
-                              <div className="text-xs font-bold uppercase tracking-tight line-clamp-1">{tier.label}</div>
+                              <div className="text-xs font-bold uppercase tracking-tight line-clamp-1">{tier.name || tier.label}</div>
                               <div className="text-[10px] text-text-secondary">{tier.delivery}</div>
                             </div>
                             <div className="text-xs font-mono font-bold text-accent pt-1">
-                              LKR {tier.price.toLocaleString()}
+                              LKR {Number(tier.setup_price || 0).toLocaleString()}
                             </div>
                           </button>
                         );
@@ -724,12 +766,12 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
                       3. Choose Maintenance Strategy (Monthly)
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {(Object.keys(maintenancePlanPrices) as Array<keyof typeof maintenancePlanPrices>).map((mKey) => {
-                        const plan = maintenancePlanPrices[mKey];
-                        const isSelected = selectedMaintenance === mKey;
+                      {maintenancePlanPrices.map((plan) => {
+                        const mKey = String(plan.id) as "none" | "basic" | "growth" | "premium";
+                        const isSelected = String(selectedMaintenance).toLowerCase() === String(plan.id).toLowerCase();
                         return (
                           <button
-                            key={mKey}
+                            key={plan.id}
                             onClick={() => setSelectedMaintenance(mKey)}
                             className={`p-2.5 rounded border text-center transition-all cursor-pointer flex flex-col justify-between ${
                               isSelected 
@@ -739,7 +781,7 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
                           >
                             <span className="text-[10px] font-bold tracking-tight block uppercase leading-none mb-1">{plan.label}</span>
                             <span className="text-[10px] font-mono font-bold text-accent mt-1">
-                              {plan.price > 0 ? `LKR ${plan.price.toLocaleString()}/mo` : "Free"}
+                              {Number(plan.price || 0) > 0 ? `LKR ${Number(plan.price || 0).toLocaleString()}/mo` : "Free"}
                             </span>
                           </button>
                         );
@@ -769,7 +811,7 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
 
                     <div className="space-y-3 my-5 text-xs">
                       <div className="flex justify-between items-center">
-                        <span className="text-text-secondary">Base Layout Style ({basePrices[selectedBaseTier].label}):</span>
+                        <span className="text-text-secondary">Base Layout Style ({selectedPackage?.name || selectedPackage?.label || "Selected Package"}):</span>
                         <span className="font-mono text-text-primary font-semibold">LKR {baseCost.toLocaleString()}</span>
                       </div>
 

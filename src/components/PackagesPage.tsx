@@ -1,32 +1,48 @@
 import React from "react";
 import { Check, Info, Shield, Zap, Sparkles, ShoppingBag, Terminal, Globe, Award, HelpCircle } from "lucide-react";
+import { Package, Addon } from "../services/googleSheets";
 
 interface PackagesPageProps {
   onSelectPackage: (pkg: "starter" | "business" | "premium" | "ecommerce") => void;
-  basePrices: {
-    starter: { label: string; price: number; delivery: string };
-    business: { label: string; price: number; delivery: string };
-    premium: { label: string; price: number; delivery: string };
-    ecommerce: { label: string; price: number; delivery: string };
-  };
-  featureAddons: Array<{ id: string; label: string; price: number; category: string }>;
+  basePrices: Package[];
+  featureAddons: Addon[];
 }
 
 export default function PackagesPage({ onSelectPackage, basePrices, featureAddons }: PackagesPageProps) {
+  const starterPackage = basePrices.find(p => String(p.id) === "starter" || String(p.id) === "1" || p.name?.toLowerCase().includes("starter"));
+  const businessPackage = basePrices.find(p => String(p.id) === "business" || String(p.id) === "2" || p.name?.toLowerCase().includes("business"));
+  const premiumPackage = basePrices.find(p => String(p.id) === "premium" || String(p.id) === "3" || p.name?.toLowerCase().includes("premium"));
+  const ecommercePackage = basePrices.find(p => String(p.id) === "ecommerce" || String(p.id) === "4" || p.name?.toLowerCase().includes("ecommerce") || p.name?.toLowerCase().includes("e-commerce"));
+
+  const starterPrice = Number(starterPackage?.setup_price || 27500);
+  const businessPrice = Number(businessPackage?.setup_price || 70000);
+  const premiumPrice = Number(premiumPackage?.setup_price || 140000);
+  const ecommercePrice = Number(ecommercePackage?.setup_price || 210000);
+
+  const starterDelivery = starterPackage?.delivery || "3-5 Days";
+  const businessDelivery = businessPackage?.delivery || "1-2 Weeks";
+  const premiumDelivery = premiumPackage?.delivery || "2-3 Weeks";
+  const ecommerceDelivery = ecommercePackage?.delivery || "2-4 Weeks";
+
+  const starterLabel = starterPackage?.name || "Starter Web";
+  const businessLabel = businessPackage?.name || "Business Web";
+  const premiumLabel = premiumPackage?.name || "Premium Corporate Web";
+  const ecommerceLabel = ecommercePackage?.name || "E-Commerce Gateway Shop";
+
   const specs = [
     { 
       parameter: "LKR Starting Price", 
-      starter: `LKR ${(basePrices.starter?.price || 27500).toLocaleString()}`, 
-      business: `LKR ${(basePrices.business?.price || 70000).toLocaleString()}`, 
-      premium: `LKR ${(basePrices.premium?.price || 140000).toLocaleString()}`, 
-      ecommerce: `LKR ${(basePrices.ecommerce?.price || 210000).toLocaleString()}` 
+      starter: `LKR ${starterPrice.toLocaleString()}`, 
+      business: `LKR ${businessPrice.toLocaleString()}`, 
+      premium: `LKR ${premiumPrice.toLocaleString()}`, 
+      ecommerce: `LKR ${ecommercePrice.toLocaleString()}` 
     },
     { 
       parameter: "Target Delivery SLA", 
-      starter: basePrices.starter?.delivery || "3 - 5 Days", 
-      business: basePrices.business?.delivery || "1 - 2 Weeks", 
-      premium: basePrices.premium?.delivery || "2 - 3 Weeks", 
-      ecommerce: basePrices.ecommerce?.delivery || "2 - 4 Weeks" 
+      starter: starterDelivery, 
+      business: businessDelivery, 
+      premium: premiumDelivery, 
+      ecommerce: ecommerceDelivery 
     },
     { parameter: "Mobile Responsive Align", starter: "✓ Fully Adaptive", business: "✓ Fully Adaptive", premium: "✓ High-Fidelity Fluid", ecommerce: "✓ High-Fidelity Fluid" },
     { parameter: "Max Page Count", starter: "1 - 5 Pages", business: "5 - 10 Pages", premium: "10 - 25 Pages", ecommerce: "Unlimited Products" },
@@ -64,7 +80,7 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
             <div className="flex justify-between items-start">
               <div>
                 <span className="text-text-secondary text-[10px] font-mono uppercase tracking-widest">Entry Tier</span>
-                <h3 className="text-lg font-bold text-white mt-1">{basePrices.starter?.label || "Starter Web"}</h3>
+                <h3 className="text-lg font-bold text-white mt-1">{starterLabel}</h3>
               </div>
               <div className="bg-accent/10 border border-accent/20 text-accent rounded-full p-2">
                 <Globe className="w-4 h-4" />
@@ -77,8 +93,8 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
 
             <div className="py-2">
               <span className="text-[10px] text-text-secondary font-mono block">Baseline Investment</span>
-              <div className="text-2xl font-bold font-mono text-accent">LKR {basePrices.starter.price.toLocaleString()}</div>
-              <span className="text-[10px] text-text-secondary">Expected delivery: {basePrices.starter.delivery}</span>
+              <div className="text-2xl font-bold font-mono text-accent">LKR {starterPrice.toLocaleString()}</div>
+              <span className="text-[10px] text-text-secondary">Expected delivery: {starterDelivery}</span>
             </div>
 
             <hr className="border-border-custom/50" />
@@ -113,7 +129,7 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
             <div className="flex justify-between items-start">
               <div>
                 <span className="text-accent text-[10px] font-mono uppercase tracking-widest">SME Champion</span>
-                <h3 className="text-lg font-bold text-white mt-1">{basePrices.business?.label || "Business Web"}</h3>
+                <h3 className="text-lg font-bold text-white mt-1">{businessLabel}</h3>
               </div>
               <div className="bg-accent/25 border border-accent/40 text-accent rounded-full p-2">
                 <Sparkles className="w-4 h-4" />
@@ -126,8 +142,8 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
 
             <div className="py-2">
               <span className="text-[10px] text-text-secondary font-mono block">Baseline Investment</span>
-              <div className="text-2xl font-bold font-mono text-accent">LKR {basePrices.business.price.toLocaleString()}</div>
-              <span className="text-[10px] text-text-secondary">Expected delivery: {basePrices.business.delivery}</span>
+              <div className="text-2xl font-bold font-mono text-accent">LKR {businessPrice.toLocaleString()}</div>
+              <span className="text-[10px] text-text-secondary">Expected delivery: {businessDelivery}</span>
             </div>
 
             <hr className="border-border-custom/50" />
@@ -157,7 +173,7 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
             <div className="flex justify-between items-start">
               <div>
                 <span className="text-text-secondary text-[10px] font-mono uppercase tracking-widest">Enterprise grade</span>
-                <h3 className="text-lg font-bold text-white mt-1">{basePrices.premium?.label || "Premium Web"}</h3>
+                <h3 className="text-lg font-bold text-white mt-1">{premiumLabel}</h3>
               </div>
               <div className="bg-accent/10 border border-accent/20 text-accent rounded-full p-2">
                 <Award className="w-4 h-4" />
@@ -170,8 +186,8 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
 
             <div className="py-2">
               <span className="text-[10px] text-text-secondary font-mono block">Baseline Investment</span>
-              <div className="text-2xl font-bold font-mono text-accent">LKR {basePrices.premium.price.toLocaleString()}</div>
-              <span className="text-[10px] text-text-secondary">Expected delivery: {basePrices.premium.delivery}</span>
+              <div className="text-2xl font-bold font-mono text-accent">LKR {premiumPrice.toLocaleString()}</div>
+              <span className="text-[10px] text-text-secondary">Expected delivery: {premiumDelivery}</span>
             </div>
 
             <hr className="border-border-custom/50" />
@@ -201,7 +217,7 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
             <div className="flex justify-between items-start">
               <div>
                 <span className="text-text-secondary text-[10px] font-mono uppercase tracking-widest">Global retail</span>
-                <h3 className="text-lg font-bold text-white mt-1">{basePrices.ecommerce?.label || "E-Commerce Shop"}</h3>
+                <h3 className="text-lg font-bold text-white mt-1">{ecommerceLabel}</h3>
               </div>
               <div className="bg-accent/10 border border-accent/20 text-accent rounded-full p-2">
                 <ShoppingBag className="w-4 h-4" />
@@ -214,8 +230,8 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
 
             <div className="py-2">
               <span className="text-[10px] text-text-secondary font-mono block">Baseline Investment</span>
-              <div className="text-2xl font-bold font-mono text-accent">LKR {basePrices.ecommerce.price.toLocaleString()}</div>
-              <span className="text-[10px] text-text-secondary">Expected delivery: {basePrices.ecommerce.delivery}</span>
+              <div className="text-2xl font-bold font-mono text-accent">LKR {ecommercePrice.toLocaleString()}</div>
+              <span className="text-[10px] text-text-secondary">Expected delivery: {ecommerceDelivery}</span>
             </div>
 
             <hr className="border-border-custom/50" />
