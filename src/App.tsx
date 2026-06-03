@@ -28,22 +28,31 @@ export default function App() {
   const [cmsError, setCmsError] = useState<boolean>(false);
   const [cmsFromCache, setCmsFromCache] = useState<boolean>(false);
 
-  useEffect(() => {
-    async function loadCMS() {
-      try {
-        const { data, fromCache, error } = await fetchCMSData();
-        setCmsData(data);
-        setCmsFromCache(fromCache);
-        setCmsError(error);
-      } catch (e) {
-        console.error("Failed to load Google Sheets CMS:", e);
-        setCmsError(true);
-      } finally {
-        setCmsLoading(false);
-      }
+  const loadCMS = async (forceRefresh = false) => {
+    if (forceRefresh) {
+      localStorage.removeItem("yjmweb_cms_time_cache");
     }
+    setCmsLoading(true);
+    try {
+      const { data, fromCache, error } = await fetchCMSData();
+      setCmsData(data);
+      setCmsFromCache(fromCache);
+      setCmsError(error);
+    } catch (e) {
+      console.error("Failed to load Google Sheets CMS:", e);
+      setCmsError(true);
+    } finally {
+      setCmsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadCMS();
   }, []);
+
+  const handleRetryCMS = () => {
+    loadCMS(true);
+  };
 
   // State for Calculator
   const [businessType, setBusinessType] = useState<string>("Retail & Shopping");
@@ -115,11 +124,12 @@ export default function App() {
 
   // Calculating total pricing
   const baseCost = basePrices[selectedBaseTier]?.price || 0;
+  const baseMonthlyCost = basePrices[selectedBaseTier]?.monthly_price || 0;
   const featuresCost = selectedFeatures.reduce((acc, featId) => {
     const match = featureAddons.find(f => f.id === featId);
     return acc + (match ? match.price : 0);
   }, 0);
-  const recurringCost = maintenancePlanPrices[selectedMaintenance]?.price || 0;
+  const recurringCost = (maintenancePlanPrices[selectedMaintenance]?.price || 0) + baseMonthlyCost;
   const initialSetupTotal = baseCost + featuresCost;
 
   // Toggle Features function
@@ -367,6 +377,15 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
     }, 150);
   };
 
+  if (cmsLoading && (!cmsData || !cmsData.packages)) {
+    return (
+      <div className="min-h-screen bg-bg text-text-primary flex flex-col items-center justify-center font-sans space-y-4">
+        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-mono text-text-secondary animate-pulse">Connecting to Google Sheets CMS...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-bg text-text-primary flex flex-col font-sans">
       
@@ -381,15 +400,15 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
           </span>
           {cmsLoading ? (
             <span className="inline-flex items-center gap-1 bg-yellow-950/40 text-yellow-500 border border-yellow-500/25 text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-sm animate-pulse">
-              <span className="w-1 h-1 rounded-full bg-yellow-500" /> CMS LOADING...
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" /> CMS LOADING...
             </span>
           ) : cmsError ? (
             <span className="inline-flex items-center gap-1 bg-red-950/40 text-rose-500 border border-red-500/25 text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-sm" title="Google Sheets integration offline, fallback operational.">
-              <span className="w-1 h-1 rounded-full bg-rose-500 animate-ping" /> CMS OFFLINE
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" /> CMS OFFLINE
             </span>
           ) : cmsFromCache ? (
             <span className="inline-flex items-center gap-1 bg-sky-950/40 text-sky-400 border border-sky-500/25 text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-sm" title="Serving from offline cached database">
-              <span className="w-1 h-1 rounded-full bg-sky-400" /> CMS CACHED
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400" /> CMS CACHED
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 bg-emerald-950/40 text-emerald-400 border border-emerald-500/25 text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-sm" title="Synced live with Google Sheets">
@@ -419,6 +438,24 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </header>
+
+      {cmsError && (
+        <div className="bg-rose-950/80 border-b border-rose-500/30 text-rose-200 py-3 px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono select-none" id="cms-error-alert">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+            <span className="font-bold">Unable to load package data.</span>
+            <span className="text-rose-450 hidden sm:inline">Using offline cached database schema records as local fallback.</span>
+          </div>
+          <button 
+            type="button"
+            onClick={handleRetryCMS}
+            className="bg-rose-500 hover:bg-rose-400 text-bg py-1 px-3 rounded font-mono font-bold tracking-tight transition-all flex items-center gap-1.5 cursor-pointer shadow-sm text-[11px]"
+          >
+            <RefreshCw className="w-3 h-3 animate-spin" style={{ animationDuration: '3s' }} />
+            <span>Retry Connection</span>
+          </button>
+        </div>
+      )}
 
       {/* Main Layout Container: Grid splitting into left workspace sidebar & large center body */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0">
