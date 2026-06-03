@@ -111,6 +111,16 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const [openFaqIndices, setOpenFaqIndices] = useState<number[]>([0]);
+
+  const toggleFaq = (idx: number) => {
+    if (openFaqIndices.includes(idx)) {
+      setOpenFaqIndices(openFaqIndices.filter(i => i !== idx));
+    } else {
+      setOpenFaqIndices([...openFaqIndices, idx]);
+    }
+  };
+
   useEffect(() => {
     if (chatBottomRef.current) {
       chatBottomRef.current.scrollIntoView({ behavior: "smooth" });
@@ -1135,7 +1145,7 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
                     onClick={() => {
                       setInputMessage(txt);
                     }}
-                    className="bg-card text-text-secondary hover:text-white border border-border-custom text-[10px] font-medium font-mono px-3 py-1 rounded hover:border-accent transition-all cursor-pointer"
+                    className="bg-card text-text-secondary hover:text-white border border-border-custom text-[10px] font-medium px-3 py-1 rounded hover:border-accent transition-all cursor-pointer"
                   >
                     {txt}
                   </button>
@@ -1168,82 +1178,40 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                
-                {/* Card Starter */}
-                <div className="bg-card border border-border-custom rounded-xl p-5 flex flex-col justify-between hover:border-accent/40 transition-all">
-                  <div>
-                    <span className="text-[10px] text-text-secondary uppercase tracking-widest font-bold">Starter website</span>
-                    <h3 className="font-extrabold text-white text-base mt-1">Personal / Small Shops</h3>
-                    <div className="font-mono text-lg font-bold text-accent mt-3 mb-4">LKR 20K - 35K</div>
-                    <ul className="space-y-2 text-xs text-text-secondary border-t border-border-custom pt-4">
-                      <li className="flex items-center gap-1.5">• 1 to 5 premium pages</li>
-                      <li className="flex items-center gap-1.5">• Mobile aligned first</li>
-                      <li className="flex items-center gap-1.5">• WhatsApp active button</li>
-                      <li className="flex items-center gap-1.5">• Basic local SEO Meta</li>
-                    </ul>
-                  </div>
-                  <div className="text-[9px] text-accent font-bold tracking-widest uppercase mt-6 pt-3 border-t border-border-custom/50">
-                    3 - 5 DAYS DELIVERY
-                  </div>
-                </div>
-
-                {/* Card Business */}
-                <div className="bg-card border-2 border-accent rounded-xl p-5 flex flex-col justify-between hover:scale-[1.02] transition-all">
-                  <div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-accent uppercase tracking-widest font-extrabold">Business website</span>
-                      <span className="bg-accent-glow text-accent text-[8px] font-bold px-2 py-0.5 rounded-full">POPULAR</span>
+                {basePrices.map((pkg) => {
+                  let badge = null;
+                  if (String(pkg.id).toLowerCase() === "business") {
+                    badge = <span className="bg-accent-glow text-accent text-[8px] font-bold px-2 py-0.5 rounded-full">POPULAR</span>;
+                  }
+                  return (
+                    <div 
+                      key={pkg.id} 
+                      className={`bg-card rounded-xl p-5 flex flex-col justify-between hover:border-accent/40 hover:scale-[1.01] transition-all ${
+                        String(pkg.id).toLowerCase() === "business" ? "border-2 border-accent" : "border border-border-custom"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] text-text-secondary uppercase tracking-widest font-bold">Base website</span>
+                          {badge}
+                        </div>
+                        <h3 className="font-extrabold text-white text-base mt-1">{pkg.name}</h3>
+                        <div className="font-mono text-lg font-bold text-accent mt-3 mb-4">
+                          LKR {Number(pkg.setup_price || 0).toLocaleString()}
+                        </div>
+                        <ul className="space-y-2 text-xs text-text-secondary border-t border-border-custom pt-4">
+                          <li className="flex items-center gap-1.5">• Custom compilation bundle</li>
+                          <li className="flex items-center gap-1.5">• Mobile responsive optimization</li>
+                          <li className="flex items-center gap-1.5">• Sub-second edge load speed</li>
+                          <li className="flex items-center gap-1.5">• Delivery: {pkg.delivery}</li>
+                        </ul>
+                      </div>
+                      <div className="text-[9px] text-accent font-bold tracking-widest uppercase mt-6 pt-3 border-t border-border-custom/50">
+                        {pkg.delivery.toUpperCase()} DELIVERY
+                      </div>
                     </div>
-                    <h3 className="font-extrabold text-white text-base mt-1">Expanding Brands</h3>
-                    <div className="font-mono text-lg font-bold text-accent mt-3 mb-4">LKR 50K - 90K</div>
-                    <ul className="space-y-2 text-xs text-text-secondary border-t border-border-custom pt-4">
-                      <li className="flex items-center gap-1.5">• 5 to 10 fluid custom pages</li>
-                      <li className="flex items-center gap-1.5">• Custom visual branding</li>
-                      <li className="flex items-center gap-1.5">• Full SEO setups</li>
-                      <li className="flex items-center gap-1.5">• Google searchindexing setup</li>
-                    </ul>
-                  </div>
-                  <div className="text-[9px] text-accent font-bold tracking-widest uppercase mt-6 pt-3 border-t border-border-custom/50">
-                    1 - 2 WEEKS DELIVERY
-                  </div>
-                </div>
-
-                {/* Card Premium */}
-                <div className="bg-card border border-border-custom rounded-xl p-5 flex flex-col justify-between hover:border-accent/40 transition-all">
-                  <div>
-                    <span className="text-[10px] text-text-secondary uppercase tracking-widest font-bold">Premium website</span>
-                    <h3 className="font-extrabold text-white text-base mt-1">Professional Brands</h3>
-                    <div className="font-mono text-lg font-bold text-accent mt-3 mb-4">LKR 100K - 180K</div>
-                    <ul className="space-y-2 text-xs text-text-secondary border-t border-border-custom pt-4">
-                      <li className="flex items-center gap-1.5">• Advanced visual animations</li>
-                      <li className="flex items-center gap-1.5">• Custom Headless/CMS integration</li>
-                      <li className="flex items-center gap-1.5">• Complex active Bookings</li>
-                      <li className="flex items-center gap-1.5">• High-fidelity analytics audit</li>
-                    </ul>
-                  </div>
-                  <div className="text-[9px] text-accent font-bold tracking-widest uppercase mt-6 pt-3 border-t border-border-custom/50">
-                    PRIORITY QUEUE BUILD
-                  </div>
-                </div>
-
-                {/* Card E-Commerce */}
-                <div className="bg-card border border-border-custom rounded-xl p-5 flex flex-col justify-between hover:border-accent/40 transition-all">
-                  <div>
-                    <span className="text-[10px] text-text-secondary uppercase tracking-widest font-bold">Store website</span>
-                    <h3 className="font-extrabold text-white text-base mt-1">E-Commerce Automation</h3>
-                    <div className="font-mono text-lg font-bold text-accent mt-3 mb-4">LKR 120K - 300K+</div>
-                    <ul className="space-y-2 text-xs text-text-secondary border-t border-border-custom pt-4">
-                      <li className="flex items-center gap-1.5">• Dynamic product catalogue</li>
-                      <li className="flex items-center gap-1.5">• Direct checkout workflows</li>
-                      <li className="flex items-center gap-1.5">• Payment gateway payouts</li>
-                      <li className="flex items-center gap-1.5">• Order logging admin panel</li>
-                    </ul>
-                  </div>
-                  <div className="text-[9px] text-accent font-bold tracking-widest uppercase mt-6 pt-3 border-t border-border-custom/50">
-                    COMPLETE STOREFRONT
-                  </div>
-                </div>
-
+                  );
+                })}
               </div>
 
               {/* Maintenance Subscription cards reference */}
@@ -1252,24 +1220,74 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
                   Affordable Stable Care & Maintenance Systems
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  <div className="border border-dashed border-border-custom p-4 rounded-lg bg-bg/50">
-                    <h4 className="font-bold text-white text-xs mb-1">Basic Maintenance Plan</h4>
-                    <p className="text-[11px] text-text-secondary mb-2">LKR 5,000 / month</p>
-                    <p className="text-[10px] text-text-secondary leading-relaxed">System security checks, database dumps, core framework updates, and minor text/image layout change requests.</p>
-                  </div>
-                  <div className="border border-dashed border-border-custom p-4 rounded-lg bg-bg/50">
-                    <h4 className="font-bold text-white text-xs mb-1">Business Growth Care</h4>
-                    <p className="text-[11px] text-text-secondary mb-2">LKR 15,000 / month</p>
-                    <p className="text-[10px] text-text-secondary leading-relaxed">Tailored SEO dynamic audits, structured micro-copy landing page updates, speed tuning reviews and speed upkeep.</p>
-                  </div>
-                  <div className="border border-dashed border-border-custom p-4 rounded-lg bg-bg/50">
-                    <h4 className="font-bold text-white text-xs mb-1">VIP Premium Management</h4>
-                    <p className="text-[11px] text-text-secondary mb-2">LKR 30,000+ / month</p>
-                    <p className="text-[10px] text-text-secondary leading-relaxed">Full deployment analytics dashboards, ongoing ad target landing campaigns setup, priority support with 4 hr response SLA.</p>
-                  </div>
+                  {maintenancePlanPrices.filter(p => p.id !== "none").map((plan) => {
+                    let desc = "System security checks, database dumps, framework updates, search indexing maintenance, and regular layout updates.";
+                    if (String(plan.id).toLowerCase() === "basic") {
+                      desc = "System security checks, database dumps, core framework updates, and minor text/image layout change requests.";
+                    } else if (String(plan.id).toLowerCase() === "growth") {
+                      desc = "Tailored SEO audits, structured micro-copy landing page updates, speed tuning reviews and speed upkeep.";
+                    } else if (String(plan.id).toLowerCase() === "premium") {
+                      desc = "Full deployment analytics dashboards, ongoing ad campaign setups, priority support with a 4 hr response SLA.";
+                    }
+                    return (
+                      <div key={plan.id} className="border border-dashed border-border-custom p-4 rounded-lg bg-bg/50">
+                        <h4 className="font-bold text-white text-xs mb-1">{plan.label}</h4>
+                        <p className="text-[11px] text-accent font-mono font-bold mb-2">
+                          LKR {Number(plan.price || 0).toLocaleString()} / month
+                        </p>
+                        <p className="text-[10px] text-text-secondary leading-relaxed">{desc}</p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
+            </div>
+          </section>
+
+          {/* FAQ Section driven by Google Sheets CMS */}
+          <section className="bg-bg border-b border-border-custom py-16 px-4 sm:px-8" id="faq-section">
+            <div className="max-w-4xl mx-auto space-y-8">
+              <div className="text-center">
+                <span className="bg-accent-glow text-accent border border-accent/20 px-3 py-1 rounded-sm text-[10px] uppercase font-bold tracking-widest inline-block mb-3.5">
+                  CMS FAQ Engine
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  Frequently Asked Questions
+                </h2>
+                <p className="text-text-secondary text-xs sm:text-sm max-w-lg mx-auto mt-2">
+                  Have questions about our React builds, handovers, or payment APIs? These live query answers are synced directly from our dynamic database.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {cmsData.faq && cmsData.faq.map((item, idx) => {
+                  const isOpen = openFaqIndices.includes(idx);
+                  return (
+                    <div 
+                      key={item.id || idx} 
+                      className="bg-card border border-border-custom rounded-lg overflow-hidden transition-all duration-200"
+                    >
+                      <button
+                        onClick={() => toggleFaq(idx)}
+                        className="w-full text-left px-5 py-4 flex items-center justify-between font-bold text-xs sm:text-sm text-white hover:bg-white/[0.02] cursor-pointer transition-colors"
+                      >
+                        <span className="flex items-center gap-2">
+                          <HelpCircle className="w-4 h-4 text-accent shrink-0" />
+                          <span>{item.question}</span>
+                        </span>
+                        <ChevronRight className={`w-4 h-4 text-accent transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`} />
+                      </button>
+                      
+                      {isOpen && (
+                        <div className="px-5 pb-5 pt-1 text-xs text-text-secondary border-t border-border-custom/50 bg-bg/25 leading-relaxed">
+                          {item.answer}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </section>
 

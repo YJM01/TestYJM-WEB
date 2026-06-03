@@ -25,11 +25,18 @@ export interface ContactInfo {
   email: string;
 }
 
+export interface FAQ {
+  id: string | number;
+  question: string;
+  answer: string;
+}
+
 export interface CMSData {
   packages: Package[];
   addons: Addon[];
   maintenance: MaintenancePlan[];
   contact: ContactInfo;
+  faq: FAQ[];
 }
 
 export const DEFAULT_CMS_DATA: CMSData = {
@@ -56,7 +63,13 @@ export const DEFAULT_CMS_DATA: CMSData = {
     phone: "+94776826937",
     whatsapp: "+94776826937",
     email: "yunilajanu72@gmail.com"
-  }
+  },
+  faq: [
+    { id: 1, question: "What is the expected delivery timeline?", answer: "Starter Web is delivered within 3-5 days. Larger Business, Premium, or E-Commerce builds take 1-4 weeks, matching our documented targets." },
+    { id: 2, question: "Are there any hidden monthly or recurring fees?", answer: "No hidden fees. Hosting on global edge networks (Vercel) is 100% free under normal tier loads. Active maintenance is completely optional." },
+    { id: 3, question: "Will my website be properly indexed on Google?", answer: "Yes. Every plan starting from Business includes indexing setups on Google Search Console to jumpstart local visibility." },
+    { id: 4, question: "Do you integrate local payment channels?", answer: "Yes, we integrate PayHere, EZCash, Dialog Genies, or direct bank transfer options. Stripe is also available for international sales." }
+  ]
 };
 
 const CACHE_KEY = "yjmweb_cms_data_cache_v2";
@@ -125,23 +138,21 @@ export async function fetchCMSData(): Promise<{ data: CMSData; fromCache: boolea
   try {
     const separator = apiUrl.includes("?") ? "&" : "?";
     
-    // We will attempt to fetch sheet-specific parameters:
-    // API_URL?sheet=Packages
-    // If that fails, we can try to fetch the consolidated spreadsheet directly.
-    
+    // We will attempt to fetch sheet-specific parameters
     let pkgs: any[] = [];
     let addons: any[] = [];
     let maint: any[] = [];
     let contactInfo: any = null;
-    let fetchError = false;
+    let faqs: any[] = [];
 
     try {
       // Parallel fetches for individual sheets to support standard Apps Script configuration
-      const [packagesRes, addonsRes, maintenanceRes, contactRes] = await Promise.all([
+      const [packagesRes, addonsRes, maintenanceRes, contactRes, faqRes] = await Promise.all([
         fetchWithTimeout(`${apiUrl}${separator}sheet=Packages`),
         fetchWithTimeout(`${apiUrl}${separator}sheet=Addons`),
         fetchWithTimeout(`${apiUrl}${separator}sheet=Maintenance`),
-        fetchWithTimeout(`${apiUrl}${separator}sheet=Contact`).catch(() => null) // contact is optional
+        fetchWithTimeout(`${apiUrl}${separator}sheet=Contact`).catch(() => null), // contact is optional
+        fetchWithTimeout(`${apiUrl}${separator}sheet=FAQ`).catch(() => null)       // FAQ is optional
       ]);
 
       if (Array.isArray(packagesRes)) pkgs = packagesRes;
@@ -162,6 +173,14 @@ export async function fetchCMSData(): Promise<{ data: CMSData; fromCache: boolea
         else if (contactRes.data) contactInfo = contactRes.data;
         else contactInfo = contactRes;
       }
+
+      if (faqRes) {
+        if (Array.isArray(faqRes)) faqs = faqRes;
+        else if (faqRes.faq && Array.isArray(faqRes.faq)) faqs = faqRes.faq;
+        else if (faqRes.faqs && Array.isArray(faqRes.faqs)) faqs = faqRes.faqs;
+        else if (faqRes.data && Array.isArray(faqRes.data)) faqs = faqRes.data;
+        else faqs = Object.values(faqRes).filter(item => typeof item === 'object');
+      }
     } catch (sheetFetchErr) {
       console.warn("Individual sheet fetches parameter failed. Trying consolidated API call direct...", sheetFetchErr);
       // Consolidated raw fetch
@@ -176,8 +195,11 @@ export async function fetchCMSData(): Promise<{ data: CMSData; fromCache: boolea
           
           if (Array.isArray(consolidated.addons)) addons = consolidated.addons;
           if (Array.isArray(consolidated.maintenance)) maint = consolidated.maintenance;
-          
           if (consolidated.contact) contactInfo = consolidated.contact;
+          
+          if (Array.isArray(consolidated.faq)) faqs = consolidated.faq;
+          else if (Array.isArray(consolidated.faqs)) faqs = consolidated.faqs;
+          else if (consolidated.FAQ) faqs = consolidated.FAQ;
         }
       }
     }
@@ -270,21 +292,52 @@ export async function fetchCMSData(): Promise<{ data: CMSData; fromCache: boolea
       email: contactInfo?.email || DEFAULT_CMS_DATA.contact.email
     };
 
+    // Normalizing FAQ list
+    const normalizedFaqs: FAQ[] = DEFAULT_CMS_DATA.faq.map((deflt) => {
+      const found = faqs.find((f: any) => f && (String(f.id).toLowerCase() === String(deflt.id).toLowerCase() || String(f.question || f.q || "").toLowerCase().includes(String(deflt.question).toLowerCase().substring(0, 15))));
+      return {
+        id: deflt.id,
+        question: found && (found.question || found.q) ? (found.question || found.q) : deflt.question,
+        answer: found && (found.answer || found.a) ? (found.answer || found.a) : deflt.answer
+      };
+    });
+
+    faqs.forEach((f: any) => {
+      if (!f) return;
+      const isFaqIncluded = normalizedFaqs.some((nf) => String(nf.question || "").toLowerCase() === String(f.question || f.q || "").toLowerCase());
+      if (!isFaqIncluded && (f.question || f.q)) {
+        normalizedFaqs.push({
+          id: f.id || `faq_${Math.random()}`,
+          question: f.question || f.q,
+          answer: f.answer || f.a || ""
+        });
+      }
+    });
+
     const mergedData: CMSData = {
       packages: normalizedPackages,
       addons: normalizedAddons,
       maintenance: normalizedMaintenance,
-      contact: parsedContact
+      contact: parsedContact,
+      faq: normalizedFaqs
     };
 
     // Store in local storage
     localStorage.setItem(CACHE_KEY, JSON.stringify(mergedData));
     localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
 
+    // REQUIREMENT 11 Logs
+    console.log("CMS Connected");
+    console.log("CMS Sync Success");
+
     return { data: mergedData, fromCache: false, error: false };
 
   } catch (err) {
     console.warn("Both individual sheet and consolidated sheet Google fetches failed. Reverting to persistent cached data:", err);
+    
+    // REQUIREMENT 11 Log
+    console.log("CMS Fallback Active");
+
     if (cachedDataStr) {
       try {
         const parsed = JSON.parse(cachedDataStr);

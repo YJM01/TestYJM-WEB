@@ -14,10 +14,10 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
   const premiumPackage = basePrices.find(p => String(p.id) === "premium" || String(p.id) === "3" || p.name?.toLowerCase().includes("premium"));
   const ecommercePackage = basePrices.find(p => String(p.id) === "ecommerce" || String(p.id) === "4" || p.name?.toLowerCase().includes("ecommerce") || p.name?.toLowerCase().includes("e-commerce"));
 
-  const starterPrice = Number(starterPackage?.setup_price || 27500);
-  const businessPrice = Number(businessPackage?.setup_price || 70000);
-  const premiumPrice = Number(premiumPackage?.setup_price || 140000);
-  const ecommercePrice = Number(ecommercePackage?.setup_price || 210000);
+  const starterPrice = Number(starterPackage?.setup_price || 0);
+  const businessPrice = Number(businessPackage?.setup_price || 0);
+  const premiumPrice = Number(premiumPackage?.setup_price || 0);
+  const ecommercePrice = Number(ecommercePackage?.setup_price || 0);
 
   const starterDelivery = starterPackage?.delivery || "3-5 Days";
   const businessDelivery = businessPackage?.delivery || "1-2 Weeks";
