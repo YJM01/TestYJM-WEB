@@ -14,8 +14,20 @@ interface PackagesPageProps {
 
 export default function PackagesPage({ onSelectPackage, basePrices, featureAddons }: PackagesPageProps) {
   const specs = [
-    { parameter: "LKR Starting Price", starter: "LKR 27,500", business: "LKR 70,000", premium: "LKR 140,000", ecommerce: "LKR 210,000" },
-    { parameter: "Target Delivery SLA", starter: "3 - 5 Days", business: "1 - 2 Weeks", premium: "2 - 3 Weeks", ecommerce: "2 - 4 Weeks" },
+    { 
+      parameter: "LKR Starting Price", 
+      starter: `LKR ${(basePrices.starter?.price || 27500).toLocaleString()}`, 
+      business: `LKR ${(basePrices.business?.price || 70000).toLocaleString()}`, 
+      premium: `LKR ${(basePrices.premium?.price || 140000).toLocaleString()}`, 
+      ecommerce: `LKR ${(basePrices.ecommerce?.price || 210000).toLocaleString()}` 
+    },
+    { 
+      parameter: "Target Delivery SLA", 
+      starter: basePrices.starter?.delivery || "3 - 5 Days", 
+      business: basePrices.business?.delivery || "1 - 2 Weeks", 
+      premium: basePrices.premium?.delivery || "2 - 3 Weeks", 
+      ecommerce: basePrices.ecommerce?.delivery || "2 - 4 Weeks" 
+    },
     { parameter: "Mobile Responsive Align", starter: "✓ Fully Adaptive", business: "✓ Fully Adaptive", premium: "✓ High-Fidelity Fluid", ecommerce: "✓ High-Fidelity Fluid" },
     { parameter: "Max Page Count", starter: "1 - 5 Pages", business: "5 - 10 Pages", premium: "10 - 25 Pages", ecommerce: "Unlimited Products" },
     { parameter: "Sub-second Load Tuning", starter: "Standard Core Web", business: "✓ Speed Tuned", premium: "✓ Priority Audited", ecommerce: "✓ Dynamic CDN Optimized" },
@@ -52,7 +64,7 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
             <div className="flex justify-between items-start">
               <div>
                 <span className="text-text-secondary text-[10px] font-mono uppercase tracking-widest">Entry Tier</span>
-                <h3 className="text-lg font-bold text-white mt-1">Starter Web</h3>
+                <h3 className="text-lg font-bold text-white mt-1">{basePrices.starter?.label || "Starter Web"}</h3>
               </div>
               <div className="bg-accent/10 border border-accent/20 text-accent rounded-full p-2">
                 <Globe className="w-4 h-4" />
@@ -101,7 +113,7 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
             <div className="flex justify-between items-start">
               <div>
                 <span className="text-accent text-[10px] font-mono uppercase tracking-widest">SME Champion</span>
-                <h3 className="text-lg font-bold text-white mt-1">Business Web</h3>
+                <h3 className="text-lg font-bold text-white mt-1">{basePrices.business?.label || "Business Web"}</h3>
               </div>
               <div className="bg-accent/25 border border-accent/40 text-accent rounded-full p-2">
                 <Sparkles className="w-4 h-4" />
@@ -145,7 +157,7 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
             <div className="flex justify-between items-start">
               <div>
                 <span className="text-text-secondary text-[10px] font-mono uppercase tracking-widest">Enterprise grade</span>
-                <h3 className="text-lg font-bold text-white mt-1">Premium Web</h3>
+                <h3 className="text-lg font-bold text-white mt-1">{basePrices.premium?.label || "Premium Web"}</h3>
               </div>
               <div className="bg-accent/10 border border-accent/20 text-accent rounded-full p-2">
                 <Award className="w-4 h-4" />
@@ -189,7 +201,7 @@ export default function PackagesPage({ onSelectPackage, basePrices, featureAddon
             <div className="flex justify-between items-start">
               <div>
                 <span className="text-text-secondary text-[10px] font-mono uppercase tracking-widest">Global retail</span>
-                <h3 className="text-lg font-bold text-white mt-1">E-Commerce Shop</h3>
+                <h3 className="text-lg font-bold text-white mt-1">{basePrices.ecommerce?.label || "E-Commerce Shop"}</h3>
               </div>
               <div className="bg-accent/10 border border-accent/20 text-accent rounded-full p-2">
                 <ShoppingBag className="w-4 h-4" />

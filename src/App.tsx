@@ -16,9 +16,34 @@ import CheckoutPage from "./components/CheckoutPage";
 import AboutPage from "./components/AboutPage";
 import ReviewsPage from "./components/ReviewsPage";
 
+import { fetchCMSData, CMSData, DEFAULT_CMS_DATA } from "./services/googleSheets";
+
 export default function App() {
   // Navigation tabs or Scroll-to sections - Expanded to full Multi-page SPA
   const [activeTab, setActiveTab] = useState<"dashboard" | "packages" | "checkout" | "about" | "reviews">("dashboard");
+
+  // CMS state values
+  const [cmsData, setCmsData] = useState<CMSData>(DEFAULT_CMS_DATA);
+  const [cmsLoading, setCmsLoading] = useState<boolean>(true);
+  const [cmsError, setCmsError] = useState<boolean>(false);
+  const [cmsFromCache, setCmsFromCache] = useState<boolean>(false);
+
+  useEffect(() => {
+    async function loadCMS() {
+      try {
+        const { data, fromCache, error } = await fetchCMSData();
+        setCmsData(data);
+        setCmsFromCache(fromCache);
+        setCmsError(error);
+      } catch (e) {
+        console.error("Failed to load Google Sheets CMS:", e);
+        setCmsError(true);
+      } finally {
+        setCmsLoading(false);
+      }
+    }
+    loadCMS();
+  }, []);
 
   // State for Calculator
   const [businessType, setBusinessType] = useState<string>("Retail & Shopping");
@@ -83,36 +108,18 @@ export default function App() {
     }
   }, [messages]);
 
-  // Pricing variables
-  const basePrices = {
-    starter: { label: "Starter Web", price: 27500, delivery: "3-5 Days" },
-    business: { label: "Business Web", price: 70000, delivery: "1-2 Weeks" },
-    premium: { label: "Premium Corporate Web", price: 140000, delivery: "2-3 Weeks" },
-    ecommerce: { label: "E-Commerce Gateway Shop", price: 210000, delivery: "2-4 Weeks" }
-  };
-
-  const featureAddons = [
-    { id: "whatsapp", label: "Floating WhatsApp Button", price: 3000, category: "Essential" },
-    { id: "seo", label: "Premium Search Console Indexing", price: 8000, category: "Marketing" },
-    { id: "payment", label: "PayHere/Stripe Gateway Install", price: 15000, category: "Advanced" },
-    { id: "speed", label: "Sub-Second Speed tuning", price: 6500, category: "Performance" },
-    { id: "blog", label: "Dynamic News/Blog CMS System", price: 10000, category: "Content" }
-  ];
-
-  const maintenancePlanPrices = {
-    none: { label: "Self-Managed", price: 0 },
-    basic: { label: "Basic Care", price: 5000 },
-    growth: { label: "Business Growth Plan", price: 15000 },
-    premium: { label: "Premium VIP Management", price: 30000 }
-  };
+  // Pricing variables mapped from the Google Sheets CMS layer
+  const basePrices = cmsData.packages;
+  const featureAddons = cmsData.addons;
+  const maintenancePlanPrices = cmsData.maintenance;
 
   // Calculating total pricing
-  const baseCost = basePrices[selectedBaseTier].price;
+  const baseCost = basePrices[selectedBaseTier]?.price || 0;
   const featuresCost = selectedFeatures.reduce((acc, featId) => {
     const match = featureAddons.find(f => f.id === featId);
     return acc + (match ? match.price : 0);
   }, 0);
-  const recurringCost = maintenancePlanPrices[selectedMaintenance].price;
+  const recurringCost = maintenancePlanPrices[selectedMaintenance]?.price || 0;
   const initialSetupTotal = baseCost + featuresCost;
 
   // Toggle Features function
@@ -284,7 +291,7 @@ LKR ${recurringCost.toLocaleString()}
   }
 
   // YOUR WHATSAPP NUMBER
-  const whatsappNumber = "+94776826937";
+  const whatsappNumber = cmsData.contact?.whatsapp || "+94776826937";
 
   const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(invoiceMessage)}`;
 
@@ -319,6 +326,8 @@ ${featureLabels || '• None Selected'}
 
 Please review my inquiry and reach out with design ideas. Thank you!`;
 
+    const emailAddress = cmsData.contact?.email || "yunilajanu72@gmail.com";
+
     // Persistent server logging
     try {
       await fetch("/api/leads", {
@@ -338,13 +347,13 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
         })
       });
       fetchLeads();
-      setSubmitSuccessMsg("✅ Inquiry saved! Opening your native Mail Client addressed to yunilajanu72@gmail.com.");
+      setSubmitSuccessMsg(`✅ Inquiry saved! Opening your native Mail Client addressed to ${emailAddress}.`);
       setTimeout(() => setSubmitSuccessMsg(""), 6000);
     } catch (err) {
       console.error("Backend login skipped:", err);
     }
 
-    const mailtoUrl = `mailto:yunilajanu72@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+    const mailtoUrl = `mailto:${emailAddress}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
     window.open(mailtoUrl, "_blank");
   };
 
@@ -370,6 +379,23 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
           <span className="hidden sm:inline-flex bg-accent-glow text-accent border border-accent/20 text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-sm">
             Local 2026 Build
           </span>
+          {cmsLoading ? (
+            <span className="inline-flex items-center gap-1 bg-yellow-950/40 text-yellow-500 border border-yellow-500/25 text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-sm animate-pulse">
+              <span className="w-1 h-1 rounded-full bg-yellow-500" /> CMS LOADING...
+            </span>
+          ) : cmsError ? (
+            <span className="inline-flex items-center gap-1 bg-red-950/40 text-rose-500 border border-red-500/25 text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-sm" title="Google Sheets integration offline, fallback operational.">
+              <span className="w-1 h-1 rounded-full bg-rose-500 animate-ping" /> CMS OFFLINE
+            </span>
+          ) : cmsFromCache ? (
+            <span className="inline-flex items-center gap-1 bg-sky-950/40 text-sky-400 border border-sky-500/25 text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-sm" title="Serving from offline cached database">
+              <span className="w-1 h-1 rounded-full bg-sky-400" /> CMS CACHED
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 bg-emerald-950/40 text-emerald-400 border border-emerald-500/25 text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-sm" title="Synced live with Google Sheets">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> CMS SYNCED
+            </span>
+          )}
         </div>
 
         {/* Links */}
@@ -592,7 +618,7 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
                         return (
                           <button
                             key={tierKey}
-                            id={`tier-card-${tierKey}`}
+                            id={`tier-card-${String(tierKey)}`}
                             onClick={() => setSelectedBaseTier(tierKey)}
                             className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between h-24 ${
                               isSelected 
@@ -863,7 +889,7 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
                               Saved Inquiries Tracker ({loggedLeads.length})
                             </span>
                             <span className="text-[9px] bg-accent-glow text-accent font-bold px-1.5 py-0.2 rounded">
-                              yunilajanu72@gmail.com
+                              {cmsData.contact?.email || "yunilajanu72@gmail.com"}
                             </span>
                           </div>
 
