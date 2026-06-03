@@ -94,51 +94,37 @@ async function fetchWithTimeout(url: string, timeoutMs = 7000): Promise<any> {
 }
 
 export async function fetchCMSData(): Promise<{ data: CMSData; fromCache: boolean; error: boolean }> {
+  // REQUIREMENT 5: Add timestamp logging
+  console.log("CMS FETCH TIME", new Date().toISOString());
+
   const apiUrl = (import.meta as any).env.VITE_GOOGLE_SHEETS_API_URL;
   
-  // 1. Check local storage for valid, unexpired cache
-  const cachedDataStr = localStorage.getItem(CACHE_KEY);
-  const cachedTimeStr = localStorage.getItem(CACHE_TIME_KEY);
-  
-  if (cachedDataStr && cachedTimeStr) {
-    const cachedTime = parseInt(cachedTimeStr, 10);
-    const now = Date.now();
-    
-    // Cache valid for 5 minutes
-    if (now - cachedTime < CACHE_DURATION_MS) {
-      try {
-        const parsed = JSON.parse(cachedDataStr);
-        // Quick verification of structure
-        if (parsed && Array.isArray(parsed.packages) && Array.isArray(parsed.addons) && Array.isArray(parsed.maintenance)) {
-          return { data: parsed as CMSData, fromCache: true, error: false };
-        }
-      } catch (e) {
-        console.error("Cache parsing or verification failed. Purging outdated cache.", e);
-        localStorage.removeItem(CACHE_KEY);
-        localStorage.removeItem(CACHE_TIME_KEY);
-      }
-    }
-  }
+  // REQUIREMENT 2 & 3: Do not cache CMS responses in localStorage/sessionStorage. 
+  // We explicitly purge any existing storage to ensure no stale data persistence.
+  localStorage.removeItem(CACHE_KEY);
+  localStorage.removeItem(CACHE_TIME_KEY);
+  sessionStorage.removeItem(CACHE_KEY);
+  sessionStorage.removeItem(CACHE_TIME_KEY);
 
-  // 2. Fallback if API URL is empty
+  // Fallback if API URL is empty
   if (!apiUrl) {
-    console.log("CMS Notice: VITE_GOOGLE_SHEETS_API_URL is empty. Serving local cache or defaults.");
-    if (cachedDataStr) {
-      try {
-        const parsed = JSON.parse(cachedDataStr);
-        return { data: parsed as CMSData, fromCache: true, error: false };
-      } catch (e) {
-        // Fall back to DEFAULT_CMS_DATA
-      }
-    }
+    console.log("CMS Notice: VITE_GOOGLE_SHEETS_API_URL is empty. Serving defaults.");
     return { data: DEFAULT_CMS_DATA, fromCache: false, error: false };
   }
 
   // 3. Try fetching from the API URL using consolidated or individual sheets fallback
   try {
-    const separator = apiUrl.includes("?") ? "&" : "?";
+    const hasQuery = apiUrl.includes("?");
+    const separator = hasQuery ? "&" : "?";
     
-    // We will attempt to fetch sheet-specific parameters
+    // REQUIREMENT 8: Add cache busting (fetch(API_URL + '?t=' + Date.now()))
+    const packagesUrl = `${apiUrl}${separator}sheet=Packages&t=${Date.now()}`;
+    const addonsUrl = `${apiUrl}${separator}sheet=Addons&t=${Date.now()}`;
+    const maintenanceUrl = `${apiUrl}${separator}sheet=Maintenance&t=${Date.now()}`;
+    const contactUrl = `${apiUrl}${separator}sheet=Contact&t=${Date.now()}`;
+    const faqUrl = `${apiUrl}${separator}sheet=FAQ&t=${Date.now()}`;
+    const consolidatedUrl = `${apiUrl}${separator}t=${Date.now()}`;
+
     let pkgs: any[] = [];
     let addons: any[] = [];
     let maint: any[] = [];
@@ -148,11 +134,11 @@ export async function fetchCMSData(): Promise<{ data: CMSData; fromCache: boolea
     try {
       // Parallel fetches for individual sheets to support standard Apps Script configuration
       const [packagesRes, addonsRes, maintenanceRes, contactRes, faqRes] = await Promise.all([
-        fetchWithTimeout(`${apiUrl}${separator}sheet=Packages`),
-        fetchWithTimeout(`${apiUrl}${separator}sheet=Addons`),
-        fetchWithTimeout(`${apiUrl}${separator}sheet=Maintenance`),
-        fetchWithTimeout(`${apiUrl}${separator}sheet=Contact`).catch(() => null), // contact is optional
-        fetchWithTimeout(`${apiUrl}${separator}sheet=FAQ`).catch(() => null)       // FAQ is optional
+        fetchWithTimeout(packagesUrl),
+        fetchWithTimeout(addonsUrl),
+        fetchWithTimeout(maintenanceUrl),
+        fetchWithTimeout(contactUrl).catch(() => null), // contact is optional
+        fetchWithTimeout(faqUrl).catch(() => null)       // FAQ is optional
       ]);
 
       if (Array.isArray(packagesRes)) pkgs = packagesRes;
@@ -183,8 +169,8 @@ export async function fetchCMSData(): Promise<{ data: CMSData; fromCache: boolea
       }
     } catch (sheetFetchErr) {
       console.warn("Individual sheet fetches parameter failed. Trying consolidated API call direct...", sheetFetchErr);
-      // Consolidated raw fetch
-      const consolidated = await fetchWithTimeout(apiUrl);
+      // Consolidated raw fetch with cache busting
+      const consolidated = await fetchWithTimeout(consolidatedUrl);
       
       if (consolidated) {
         if (Array.isArray(consolidated)) {
@@ -204,7 +190,8 @@ export async function fetchCMSData(): Promise<{ data: CMSData; fromCache: boolea
       }
     }
 
-    // Normalizing package objects to guarantee fallback correctness
+    // REQUIREMENT 6 & 7: Force refresh packages, addons, maintenance, FAQ and contact after every successful fetch
+    // Normalizing package objects to guarantee fallback correctness with latest CMS data
     const normalizedPackages: Package[] = DEFAULT_CMS_DATA.packages.map((deflt, idx) => {
       // Look for a package in the returned array that matches this tier
       const found = pkgs.find((p: any) => {
@@ -322,30 +309,21 @@ export async function fetchCMSData(): Promise<{ data: CMSData; fromCache: boolea
       faq: normalizedFaqs
     };
 
-    // Store in local storage
-    localStorage.setItem(CACHE_KEY, JSON.stringify(mergedData));
-    localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-
     // REQUIREMENT 11 Logs
     console.log("CMS Connected");
     console.log("CMS Sync Success");
 
+    // We do NOT call localStorage.setItem anymore, ensuring full stateless data fetch from active CMS
+
     return { data: mergedData, fromCache: false, error: false };
 
   } catch (err) {
-    console.warn("Both individual sheet and consolidated sheet Google fetches failed. Reverting to persistent cached data:", err);
+    console.warn("Both individual sheet and consolidated sheet Google fetches failed:", err);
     
     // REQUIREMENT 11 Log
     console.log("CMS Fallback Active");
 
-    if (cachedDataStr) {
-      try {
-        const parsed = JSON.parse(cachedDataStr);
-        return { data: parsed as CMSData, fromCache: true, error: true };
-      } catch (e) {
-        // Fall back to default structure below
-      }
-    }
+    // REQUIREMENT 10: If CMS fails completely, serve local static fallback data
     return { data: DEFAULT_CMS_DATA, fromCache: false, error: true };
   }
 }
