@@ -9,6 +9,12 @@ interface PackagesPageProps {
 }
 
 export default function PackagesPage({ onSelectPackage, basePrices, featureAddons }: PackagesPageProps) {
+  // Debug logs requested by user
+  basePrices.forEach((pkg) => {
+    console.log("CMS PACKAGE", pkg);
+    console.log("RENDER PRICE", pkg.setup_price);
+  });
+
   const starterPackage = basePrices.find(p => String(p.id) === "starter" || String(p.id) === "1" || p.name?.toLowerCase().includes("starter"));
   const businessPackage = basePrices.find(p => String(p.id) === "business" || String(p.id) === "2" || p.name?.toLowerCase().includes("business"));
   const premiumPackage = basePrices.find(p => String(p.id) === "premium" || String(p.id) === "3" || p.name?.toLowerCase().includes("premium"));

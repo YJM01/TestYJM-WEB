@@ -702,6 +702,8 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                       {basePrices.map((tier) => {
+                        console.log("CMS PACKAGE", tier);
+                        console.log("RENDER PRICE", tier.setup_price);
                         const tierKey = String(tier.id) as "starter" | "business" | "premium" | "ecommerce";
                         const isSelected = String(selectedBaseTier).toLowerCase() === String(tier.id).toLowerCase();
                         return (
@@ -1179,6 +1181,8 @@ Please review my inquiry and reach out with design ideas. Thank you!`;
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {basePrices.map((pkg) => {
+                  console.log("CMS PACKAGE", pkg);
+                  console.log("RENDER PRICE", pkg.setup_price);
                   let badge = null;
                   if (String(pkg.id).toLowerCase() === "business") {
                     badge = <span className="bg-accent-glow text-accent text-[8px] font-bold px-2 py-0.5 rounded-full">POPULAR</span>;
